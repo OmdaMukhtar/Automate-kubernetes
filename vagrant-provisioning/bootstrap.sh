@@ -50,6 +50,11 @@ sed -i 's/SystemdCgroup \= false/SystemdCgroup \= true/g' /etc/containerd/config
 systemctl restart containerd
 systemctl enable containerd
 
+echo "[Task 5.1] Install k8s dependancies"
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -qq
+apt-get install -qq -y apt-transport-https ca-certificates curl gnupg lsb-release socat conntrack ipset
+
 echo "[TASK 6] Set up kubernetes repo"
 curl -fsSL "https://pkgs.k8s.io/core:/stable:/v${K8S_VERSION}/deb/Release.key" | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v${K8S_VERSION}/deb/ /" > /etc/apt/sources.list.d/kubernetes.list
