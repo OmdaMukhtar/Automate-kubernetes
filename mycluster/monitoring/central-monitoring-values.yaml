@@ -1,0 +1,150 @@
+# Central Prometheus + Grafana Helm values
+prometheus:
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelector: {}
+    podMonitorSelector: {}
+    ruleSelector: {}
+    serviceAccountName: prometheus
+
+    # Federation scrape jobs (update targets for your clusters)
+    additionalScrapeConfigs:
+      - job_name: 'cluster1-prometheus'
+        honor_labels: true
+        metrics_path: '/federate'
+        params:
+          'match[]': ['{__name__=~".+"}']
+        static_configs:
+          - targets: ['prometheus-cluster1.monitoring.svc.cluster.local:9090']
+      # - job_name: 'cluster2-prometheus'
+      #   honor_labels: true
+      #   metrics_path: '/federate'
+      #   params:
+      #     'match[]': ['{__name__=~".+"}']
+      #   static_configs:
+      #     - targets: ['prometheus-cluster2.monitoring.svc.cluster.local:9090']
+
+  server:
+    ingress:
+      enabled: true
+      ingressClassName: traefik
+      hosts:
+        - prometheus.example.test
+      annotations:
+        cert-manager.io/cluster-issuer: my-ca-issuer
+      tls:
+        - secretName: prometheus-tls
+          hosts:
+            - prometheus.example.test
+
+    persistence:
+      enabled: true
+      size: 5Gi
+      storageClassName: local-storage
+      # existingClaim: prometheus-pvc
+
+    service:
+      type: ClusterIP
+
+alertmanager:
+  alertmanagerSpec:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 200m
+        memory: 512Mi
+
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    hosts:
+      - alertmanager.example.test
+    annotations:
+      cert-manager.io/cluster-issuer: my-ca-issuer
+    tls:
+      - secretName: alertmanager-tls
+        hosts:
+          - alertmanager.example.test
+
+grafana:
+  adminUser: admin
+  adminPassword: "ChangeMe123"
+
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    hosts:
+      - grafana.example.test
+    annotations:
+      cert-manager.io/cluster-issuer: my-ca-issuer
+    tls:
+      - secretName: grafana-tls
+        hosts:
+          - grafana.example.test
+
+  service:
+    type: ClusterIP
+
+  persistence:
+    enabled: true
+    size: 5Gi
+    storageClassName: local-storage
+    existingClaim: grafana-pvc
+
+  # sidecar:
+  #   dashboards:
+  #     enabled: false
+  #   datasources:
+  #     enabled: false
+
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          access: proxy
+          url: http://prometheus-server.monitoring.svc:80
+          isDefault: true
+
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 400m
+      memory: 1Gi
+
+prometheusRules:
+  groups:
+    - name: node-alerts
+      rules:
+        - alert: NodeNotReady
+          expr: kube_node_status_condition{condition="Ready",status="false"} == 1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Node {{ $labels.node }} in {{ $labels.cluster }} is NotReady"
+            description: "Node {{ $labels.node }} in cluster {{ $labels.cluster }} has been NotReady for more than 5 minutes."
+
+        - alert: HighCPUUsage
+          expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100) > 90
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High CPU usage on {{ $labels.instance }}"
+            description: "CPU usage > 90% for more than 5 minutes."
+
+        - alert: HighMemoryUsage
+          expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 90
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High memory usage on {{ $labels.instance }}"
+            description: "Memory usage > 90% for more than 5 minutes."

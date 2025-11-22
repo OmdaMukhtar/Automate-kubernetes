@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: pv-prep
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: pv-prep
+  template:
+    metadata:
+      labels:
+        app: pv-prep
+    spec:
+      restartPolicy: Always
+      containers:
+      - name: create-pv-dir
+        image: busybox
+        command: ["sh", "-c", "chmod 777 /mnt/data/grafana /mnt/data/prometheus && sleep 3600"]
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: grafana-dir
+          mountPath: /mnt/data/grafana
+        - name: prometheus-dir
+          mountPath: /mnt/data/prometheus
+      volumes:
+      - name: grafana-dir
+        hostPath:
+          path: /mnt/data/grafana
+          type: DirectoryOrCreate
+      - name: prometheus-dir
+        hostPath:
+          path: /mnt/data/prometheus
+          type: DirectoryOrCreate
