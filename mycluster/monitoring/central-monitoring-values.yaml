@@ -15,28 +15,12 @@ prometheus:
         params:
           'match[]': ['{__name__=~".+"}']
         static_configs:
-          - targets: ['prometheus-cluster1.monitoring.svc.cluster.local:9090']
-      # - job_name: 'cluster2-prometheus'
-      #   honor_labels: true
-      #   metrics_path: '/federate'
-      #   params:
-      #     'match[]': ['{__name__=~".+"}']
-      #   static_configs:
-      #     - targets: ['prometheus-cluster2.monitoring.svc.cluster.local:9090']
+          - targets:
+              [
+                'central-monitoring-kube-pr-prometheus.monitoring.svc.cluster.local:9090',
+              ]
 
   server:
-    ingress:
-      enabled: true
-      ingressClassName: traefik
-      hosts:
-        - prometheus.example.test
-      annotations:
-        cert-manager.io/cluster-issuer: my-ca-issuer
-      tls:
-        - secretName: prometheus-tls
-          hosts:
-            - prometheus.example.test
-
     persistence:
       enabled: true
       size: 5Gi
@@ -46,17 +30,19 @@ prometheus:
     service:
       type: ClusterIP
 
-alertmanager:
-  # alertmanagerSpec:
-  #   replicas: 1
-  #   resources:
-  #     requests:
-  #       cpu: 100m
-  #       memory: 256Mi
-  #     limits:
-  #       cpu: 200m
-  #       memory: 512Mi
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    hosts:
+      - prometheus.example.test
+    annotations:
+      cert-manager.io/cluster-issuer: my-ca-issuer
+    tls:
+      - secretName: prometheus-tls
+        hosts:
+          - prometheus.example.test
 
+alertmanager:
   ingress:
     enabled: true
     ingressClassName: traefik
@@ -68,6 +54,26 @@ alertmanager:
       - secretName: alertmanager-tls
         hosts:
           - alertmanager.example.test
+
+  alertmanagerSpec:
+    replicas: 1
+    externalUrl: 'https://alertmanager.example.test'
+
+    # Alertmanager configuration
+    config:
+      global:
+        resolve_timeout: 5m
+      route:
+        receiver: 'team-slack'
+        group_by: ['alertname', 'namespace']
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 1h
+      receivers:
+        - name: 'team-slack'
+          slack_configs:
+            - api_url: 'https://hooks.slack.com/services/XXXX/YYYY/ZZZZ'
+              channel: '#alerts'
 
 grafana:
   adminUser: admin
@@ -94,12 +100,6 @@ grafana:
     storageClassName: local-storage
     existingClaim: grafana-pvc
 
-  # sidecar:
-  #   dashboards:
-  #     enabled: false
-  #   datasources:
-  #     enabled: false
-
   datasources:
     datasource.yaml:
       apiVersion: 1
@@ -110,13 +110,18 @@ grafana:
           url: http://central-monitoring-kube-pr-prometheus.monitoring:9090/
           isDefault: true
 
-  # resources:
-  #   requests:
-  #     cpu: 200m
-  #     memory: 512Mi
-  #   limits:
-  #     cpu: 400m
-  #     memory: 1Gi
+        - name: Alertmanager
+          type: alertmanager
+          access: proxy
+          url: http://central-monitoring-kube-pr-alertmanager.monitoring:9093/
+          jsonData:
+            implementation: prometheus
+
+  # alerting:
+  #   alertmanager:
+  #     - name: central-monitoring
+  #       datasource: Prometheus
+  #       url: http://central-monitoring-kube-pr-alertmanager.monitoring:9093
 
 prometheusRules:
   groups:
