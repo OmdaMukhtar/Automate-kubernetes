@@ -16,7 +16,7 @@ spec:
       containers:
       - name: create-pv-dir
         image: busybox
-        command: ["sh", "-c", "chmod 777 /mnt/data/grafana /mnt/data/prometheus && sleep 3600"]
+        command: ["sh", "-c", "chown -R 472:472 /mnt/data/grafana /mnt/data/prometheus && sleep 3600"]
         securityContext:
           privileged: true
         volumeMounts:

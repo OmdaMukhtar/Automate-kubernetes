@@ -47,15 +47,15 @@ prometheus:
       type: ClusterIP
 
 alertmanager:
-  alertmanagerSpec:
-    replicas: 1
-    resources:
-      requests:
-        cpu: 100m
-        memory: 256Mi
-      limits:
-        cpu: 200m
-        memory: 512Mi
+  # alertmanagerSpec:
+  #   replicas: 1
+  #   resources:
+  #     requests:
+  #       cpu: 100m
+  #       memory: 256Mi
+  #     limits:
+  #       cpu: 200m
+  #       memory: 512Mi
 
   ingress:
     enabled: true
@@ -71,7 +71,7 @@ alertmanager:
 
 grafana:
   adminUser: admin
-  adminPassword: "ChangeMe123"
+  adminPassword: 'ChangeMe123'
 
   ingress:
     enabled: true
@@ -101,22 +101,22 @@ grafana:
   #     enabled: false
 
   datasources:
-    datasources.yaml:
+    datasource.yaml:
       apiVersion: 1
       datasources:
         - name: Prometheus
           type: prometheus
           access: proxy
-          url: http://prometheus-server.monitoring.svc:80
+          url: http://central-monitoring-kube-pr-prometheus.monitoring:9090/
           isDefault: true
 
-  resources:
-    requests:
-      cpu: 200m
-      memory: 512Mi
-    limits:
-      cpu: 400m
-      memory: 1Gi
+  # resources:
+  #   requests:
+  #     cpu: 200m
+  #     memory: 512Mi
+  #   limits:
+  #     cpu: 400m
+  #     memory: 1Gi
 
 prometheusRules:
   groups:
@@ -128,8 +128,8 @@ prometheusRules:
           labels:
             severity: critical
           annotations:
-            summary: "Node {{ $labels.node }} in {{ $labels.cluster }} is NotReady"
-            description: "Node {{ $labels.node }} in cluster {{ $labels.cluster }} has been NotReady for more than 5 minutes."
+            summary: 'Node {{ $labels.node }} in {{ $labels.cluster }} is NotReady'
+            description: 'Node {{ $labels.node }} in cluster {{ $labels.cluster }} has been NotReady for more than 5 minutes.'
 
         - alert: HighCPUUsage
           expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100) > 90
@@ -137,8 +137,8 @@ prometheusRules:
           labels:
             severity: warning
           annotations:
-            summary: "High CPU usage on {{ $labels.instance }}"
-            description: "CPU usage > 90% for more than 5 minutes."
+            summary: 'High CPU usage on {{ $labels.instance }}'
+            description: 'CPU usage > 90% for more than 5 minutes.'
 
         - alert: HighMemoryUsage
           expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 90
@@ -146,5 +146,5 @@ prometheusRules:
           labels:
             severity: warning
           annotations:
-            summary: "High memory usage on {{ $labels.instance }}"
-            description: "Memory usage > 90% for more than 5 minutes."
+            summary: 'High memory usage on {{ $labels.instance }}'
+            description: 'Memory usage > 90% for more than 5 minutes.'

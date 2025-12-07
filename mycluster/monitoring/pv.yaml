@@ -3,8 +3,6 @@ kind: PersistentVolume
 metadata:
   name: grafana-pv
 spec:
-  claimRef:
-    name: grafana-pvc
   capacity:
     storage: 5Gi
   accessModes:
@@ -28,8 +26,6 @@ kind: PersistentVolume
 metadata:
   name: prometheus-pv
 spec:
-  claimRef:
-    name: prometheus-pvc
   capacity:
     storage: 5Gi
   accessModes:

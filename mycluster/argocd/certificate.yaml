@@ -1,0 +1,16 @@
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: argocd-cert
+  namespace: argocd   # <-- same namespace as your Ingress
+spec:
+  secretName: argocd-tls
+  duration: 8760h # 1 year
+  renewBefore: 720h
+  commonName: argocd.example.test
+  dnsNames:
+    - argocd.example.test
+  issuerRef:
+    name: my-ca-issuer       # <-- the ClusterIssuer you created
+    kind: ClusterIssuer
